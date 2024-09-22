@@ -1,19 +1,47 @@
 <!DOCTYPE html>
-<html>
-  <head>
+<html lang="en">
+<head>
     <meta charset="UTF-8">
-    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
-    <link href="./styles.css" rel="stylesheet">
-    <title>Hello World!</title>
-  </head>
-  <body>
-    <h1>Hello World!</h1>
-    We are using Node.js <span id="node-version"></span>,
-    Chromium <span id="chrome-version"></span>,
-    and Electron <span id="electron-version"></span>.
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Channel Control</title>
+</head>
+<body>
+    <h1>Audio Channel Control</h1>
+    <button onclick="playAudio('Waterflow2.mp3')">Play Audio</button>
 
-    <!-- You can also require other files to run in this process -->
-    <script src="./renderer.js"></script>
-  </body>
+    <script>
+        function initSound(file) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const audioElement = new Audio(file);
+            const track = audioContext.createMediaElementSource(audioElement);
+
+            const gainNodeLeft = audioContext.createGain();
+            const gainNodeRight = audioContext.createGain();
+
+            const splitter = audioContext.createChannelSplitter(2);
+            const merger = audioContext.createChannelMerger(2);
+
+            track.connect(splitter);
+            splitter.connect(gainNodeLeft, 0);
+            splitter.connect(gainNodeRight, 1);
+
+            gainNodeLeft.connect(merger, 0, 0);
+            gainNodeRight.connect(merger, 0, 1);
+
+            merger.connect(audioContext.destination);
+
+            return { audioElement, gainNodeLeft, gainNodeRight };
+        }
+
+        function playAudio(fileName) {
+            const filePath = `./src/${fileName}`;
+            const { audioElement, gainNodeLeft, gainNodeRight } = initSound(filePath);
+
+            // gainNodeLeft.gain.value = 0; // Set left channel volume to 0
+            // gainNodeRight.gain.value = 1; // Ensure right channel volume is up
+
+            audioElement.play();
+        }
+    </script>
+</body>
 </html>

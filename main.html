@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Speech Recognition</title>
+    <style>
+        #output {
+            margin: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            min-height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Azure Speech Recognition</h1>
+    <button id="start">Start Recognition</button>
+
+    <p id="result"></p>
+    <script>
+        let gainNodeLeft, gainNodeRight;
+
+        function initSound(file) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            let audioElement = new Audio(file);
+            const track = audioContext.createMediaElementSource(audioElement);
+
+            gainNodeLeft = audioContext.createGain();
+            gainNodeRight = audioContext.createGain();
+
+            const splitter = audioContext.createChannelSplitter(2);
+            const merger = audioContext.createChannelMerger(2);
+
+            track.connect(splitter);
+            splitter.connect(gainNodeLeft, 0);
+            splitter.connect(gainNodeRight, 1);
+
+            gainNodeLeft.connect(merger, 0, 0);
+            gainNodeRight.connect(merger, 0, 1);
+
+            merger.connect(audioContext.destination);
+            return audioElement;
+        }
+
+
+        window.electron.on('start_voice', () => {
+            const key = 'ff51e4bb556249a39d5ac124b50b53be';
+            const region = 'southeastasia';
+            window.speechAPI.startContinuousRecognition(key, region, (text) => {
+                console.log(text);
+                document.getElementById('result').innerText += text + '\n';
+                window.electron.send('recognized-text', text);
+                }, (status) => {
+                window.electron.send('recogning-text', status);
+                });
+  
+        });
+        window.electron.on('play_prompt', async (event, message ) => {
+            console.log(message);
+            let audioElement = initSound(`./src/${message}.mp3`);
+            audioElement.play()
+        });
+
+        window.electron.on('play_game', async (event,) => {
+            window.electron.send('creat_game_window');
+        });
+
+        window.electron.on('stop_voice', (event, code) => {
+            window.speechAPI.stopContinuousRecognition()
+        });
+    </script>
+</body>
+</html>

@@ -1,22 +1,77 @@
 {
-  "name": "electron-quick-start",
-  "version": "1.0.0",
-  "description": "A minimal Electron application",
-  "main": "main.js",
+  "name": "balance_bot",
+  "version": "1.0.5",
+  "main": "main.mjs",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder"
   },
-  "repository": "https://github.com/electron/electron-quick-start",
-  "keywords": [
-    "Electron",
-    "quick",
-    "start",
-    "tutorial",
-    "demo"
-  ],
-  "author": "GitHub",
-  "license": "CC0-1.0",
   "devDependencies": {
-    "electron": "^32.1.2"
+    "electron": "^32.0.1",
+    "electron-builder": "^24.13.3",
+    "read-config-file": "^6.4.0"
+  },
+  "type": "module",
+  "build": {
+    "appId": "com.speechrecognition.app",
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "icon": "f3.ico"
+    },
+    "asar": true,
+    "files": [
+      "f3.png",
+      "f3.ico",
+      "dist/**/*",
+      "src/*.mp3",
+      "node_modules/**/*",
+      "main.mjs",
+      "preload.mjs",
+      "main.html",
+      "dialog.html",
+      "recognition.html",
+      "lib/balance_bot.mjs",
+      "lib/get_app_path.mjs",
+      "lib/read_gnp.mjs",
+      "lib/open_ai.mjs",
+      "game.html"
+    ],
+    "extraResources": [
+      {
+        "from": "gnp/GNpSend.exe",
+        "to": "gnp/GNpSend.exe"
+      },
+      {
+        "from": "gnp/GNDeviceInterface.dll",
+        "to": "gnp/GNDeviceInterface.dll"
+      },
+      {
+        "from": "model/stt-enUS-automotive-small_medium-2.2.13-BBB-ff.snsr",
+        "to": "model/stt-enUS-automotive-small_medium-2.2.13-BBB-ff.snsr"
+      },
+      {
+        "from": "model/tpl-vad-lvcsr-3.10.0.snsr",
+        "to": "model/tpl-vad-lvcsr-3.10.0.snsr"
+      },
+      {
+        "from": "bin/snsr-eval.exe",
+        "to": "bin/snsr-eval.exe"
+      }
+    ]
+  },
+  "dependencies": {
+    "@nut-tree/nut-js": "^3.1.2",
+    "@nut-tree/template-matcher": "^2.0.0",
+    "axios": "^1.7.7",
+    "clipboardy": "^4.0.0",
+    "electron-store": "^10.0.0",
+    "howler": "^2.2.4",
+    "microsoft-cognitiveservices-speech-sdk": "^1.40.0",
+    "node-abi": "^3.68.0",
+    "node-record-lpcm16": "^1.0.1",
+    "opencv4nodejs-prebuilt": "^5.3.4"
   }
 }

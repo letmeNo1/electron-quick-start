@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Window</title>
+    <style>
+        
+        .chat-container {
+            width: 100%;
+            max-width: 400px;
+            /* border: 1px solid #ccc; */
+            /* padding: 20px; */
+            /* box-shadow: 0 0 10px rgba(0,0,0,0.1); */
+            background-color: #313940;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            max-height: 90vh;
+            font-family: Arial, sans-serif;
+
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            width: 50%;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+               word-break: break-all;
+
+
+        }
+        .message.left {
+            background-color: #e0e0e0;
+            justify-content: flex-start;
+        }
+        .message.right {
+            background-color: #007bff;
+            color: #fff;
+            justify-content: flex-end;
+            margin-left: auto;
+        }
+        .markdown {
+            /* font-family: monospace; */
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container" id="chat-container">
+        <div class="message left">
+            What can I do for you?
+        </div>
+    </div>
+
+    <script>
+        let messageCount = 0;
+        let messageElement;
+        let answerMessageCount = 0;
+        const chatContainer = document.querySelector('.chat-container');
+        let chatTempHistory = [];
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function updatechatTempHistory(role, text) {
+            _content = [
+                            {
+                                type: 'text',
+                                text: text
+                            }
+                        ]
+            chatTempHistory.push({ role, content: _content });
+            console.log(JSON.stringify(chatTempHistory)); // You can store this JSON as needed
+        }
+
+        window.electron.on('set-text', (event, text) => {
+            if (messageCount === 0) {
+                messageElement = document.createElement('div');
+                messageElement.className = 'message right';
+                chatContainer.appendChild(messageElement);
+                messageCount++;
+            }
+            messageElement.textContent = text;
+            setTimeout(scrollToBottom, 0); // Ensure DOM update
+        });
+
+        window.electron.on('confirm-text', (event, text) => {
+          
+            messageElement.textContent = text;
+            setTimeout(scrollToBottom, 0); // Ensure DOM update
+            updatechatTempHistory('user', text);
+            
+            // messageCount = 0;
+        });
+
+        window.electron.on('play_prompt', async (event,{ message }) => {
+            console.log(message);
+            playAudioAsync(`${message}.mp3`);
+        });
+
+        window.electron.on('answer-question', (event, text) => {
+            if (answerMessageCount === 0) {
+                const newMessageElement = document.createElement('div');
+                newMessageElement.className = 'message left markdown';
+                newMessageElement.textContent = text;
+                chatContainer.appendChild(newMessageElement);
+                answerMessageCount++;
+            }
+            newMessageElement.textContent = text;
+            updatechatTempHistory('system', text);
+            setTimeout(scrollToBottom, 0); // Ensure DOM update
+        });
+    </script>
+</body>
+</html>

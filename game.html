@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Speech Recognition</title>
+   
+</head>
+<body>
+    <script>
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        function extractContent(line) {
+            const match = line.match(/\(.*?\)\s*(.*)/);
+            return match ? match[1] : null;
+        }
+
+        function setVolume(leftVolume, rightVolume) {
+                gainNodeLeft.gain.value = leftVolume;
+                gainNodeRight.gain.value = rightVolume;
+        }
+
+        function initSound(file) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            audioElement = new Audio(file);
+            const track = audioContext.createMediaElementSource(audioElement);
+
+            gainNodeLeft = audioContext.createGain();
+            gainNodeRight = audioContext.createGain();
+
+            const splitter = audioContext.createChannelSplitter(2);
+            const merger = audioContext.createChannelMerger(2);
+
+            track.connect(splitter);
+            splitter.connect(gainNodeLeft, 0);
+            splitter.connect(gainNodeRight, 1);
+
+            gainNodeLeft.connect(merger, 0, 0);
+            gainNodeRight.connect(merger, 0, 1);
+
+            merger.connect(audioContext.destination);
+            return audioElement;
+        }
+
+
+       
+        let tag = false;
+        let gongElement;
+        var c_x
+        var c_y
+        var c_z
+        let volume = 0.5;
+
+        let gainNodeLeft, gainNodeRight;
+
+        // play_a_game = initSound2('file:///C:/Users/hanhuang/tc/electron-quick-start/src/play_game.mp3');
+        // forward = initSound2('file:///C:/Users/hanhuang/tc/electron-quick-start/src/forward.mp3');
+        // back = initSound2('file:///C:/Users/hanhuang/tc/electron-quick-start/src/back.mp3');
+        // great_move_next = initSound2('file:///C:/Users/hanhuang/tc/electron-quick-start/src/great_move_next.mp3');
+        function initSound2(file) {
+            return new Promise((resolve, reject) => {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const audioElement = new Audio(file);
+                audioElement.oncanplaythrough = () => resolve(audioElement);
+                audioElement.onerror = (e) => reject(e);
+            });
+        }
+
+        
+        function playAudio(fileName) {
+            const filePath = `./src/${fileName}`;
+            return new Promise(async (resolve, reject) => {
+                try {
+                    const audioElement = await initSound2(filePath);
+                    audioElement.play();
+                    audioElement.onended = resolve;
+                } catch (error) {
+                    console.error('Error loading audio:', error);
+                    reject(error);
+                }
+            });
+        }
+
+        function playAudioAsync(fileName) {
+            const filePath = `./src/${fileName}`;
+            const audioElement = initSound(filePath);
+            audioElement.play();
+        }
+
+        function controlVolume() {
+            return new Promise(resolve => {
+                const checkY = setInterval(async () => {
+                    console.log(c_z);
+
+                    let left_volume = volume * (1 - c_z / 30); // 调整比例因子
+                    let right_volume = volume * (1 + c_z / 30); // 调整比例因子
+                    console.log(left_volume);
+                    console.log(right_volume);
+
+                    setVolume(left_volume, right_volume);   
+                }, 100); // 每100毫秒检查一次
+            });
+        }
+
+        function checkYAndPlay(tip, value, diraction) {
+                return new Promise(resolve => {
+                    const checkY = setInterval(async () => {
+                        console.log(value);
+                        if (diraction == "forward") {
+                            if (c_y > value) {
+                                    clearInterval(checkY);
+                                    await playAudio('coin.mp3');
+                                    await playAudio(`${tip}.mp3`);
+                                    resolve();
+                            }
+                                
+                            }else if (diraction == "back") {
+                                if (c_y < value) {
+                                    clearInterval(checkY);
+                                    await playAudio('coin.mp3');
+                                    await playAudio(`${tip}.mp3`);
+                                    resolve();
+                                }
+                            }else if (diraction == "left") {
+                                if (c_z < value) {
+                                    clearInterval(checkY);
+                                    await playAudio('coin.mp3');
+                                    await playAudio(`${tip}.mp3`);
+                                    resolve();
+                                }
+                            }else if (diraction == "right") {
+                                if (c_z > value) {
+                                    clearInterval(checkY);
+                                    await playAudio('coin.mp3');
+                                    await playAudio(`${tip}.mp3`);
+                                    resolve();
+                                }
+                            }
+                        
+                        
+                        
+                        
+                    }, 100); // 每100毫秒检查一次
+                });
+            }
+
+            function withTerminationCheck(promise) {
+                return Promise.race([
+                    promise,
+                    new Promise((_, reject) => {
+                        if (!shouldContinue) reject('Process terminated');
+                    })
+                ]);
+            }
+
+            window.electron.on('play-sound', async () => {
+                window.electron.send('close_voice');
+
+                shouldContinue = true;
+                await sleep(200);
+
+                await playAudio('sorry.mp3');
+                await sleep(1000);
+                await playAudio('play_game.mp3');
+                await playAudio('forward.mp3');
+                await checkYAndPlay("great_move_next", 40, "forward");
+
+                await playAudio('back.mp3');
+                await sleep(1000);
+                await checkYAndPlay("great_move_next", -40, "back");
+
+                await playAudio('left.mp3');
+                await sleep(1000);
+                await checkYAndPlay("great_move_next", -40, "left");
+
+                await playAudio('right.mp3');
+                await sleep(1000);
+                await checkYAndPlay("good_job", 32, "right");
+
+                window.electron.send('play_waterflow');
+                await controlVolume(c_z);
+                window.electron.send('play_end');
+            });
+        
+
+        window.electron.on('play-end', () => {
+            console.log('play-end');
+            shouldContinue = false;
+        });
+
+        window.electron.on('gnp_data', (event, { x, y, z }) => {
+            console.log("got it");
+            console.log(x, y, z);
+                c_x = x;
+                c_y = y;
+                c_z = z;
+        });
+
+        window.electron.on('play_prompt', async (event,{ message }) => {
+            console.log(message);
+            await playAudio(`${message}.mp3`);
+        });
+
+
+        window.electron.on('play_waterflow', (event,) => {
+            audioElement = initSound('./src/Waterflow2.mp3');
+            if (audioElement) {
+                audioElement.pause();
+                audioElement.currentTime = 0;
+            }
+
+            audioElement.play();
+
+            // 动态调整左右声道音量
+           
+            controlVolume(c_z)
+            // 示例：将左声道音量设置为0.0，右声道音量设置为1.0
+            // setVolume(0.0, 1.0);
+        });
+
+        window.electron.on('process-error', (event, error) => {
+            console.error(`stderr: ${error}`);
+        });
+
+        window.electron.on('stop_voice', (event, code) => {
+            console.log(`child process exited with code ${code}`);
+        });
+    </script>
+</body>
+</html>
